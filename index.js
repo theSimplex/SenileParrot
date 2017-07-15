@@ -1,5 +1,16 @@
 var Twit = require('twit')
 var MarkovChain = require('markovchain')
+var chokidar = require('chokidar');
+var fs = require('fs');
+var jsdiff = require('diff');
+var filename = '/home/simplex/python/deals_seeker/log.dat' ;
+
+var used_urls = []
+function set_old_urls(){
+    fs.readFile(filename, 'utf8', function(err, contents) {
+        used_urls = contents.toString().split("\n");
+        console.log('go')
+})};
 
 var T = new Twit({
     consumer_key: 'FSvDijqqUDjgZn6d4zKhXuOws',
@@ -8,10 +19,21 @@ var T = new Twit({
     access_token_secret: 'UEnHnd9woCNMkPseP9cPpXUgq9x6FBbxH0AbNvN2qoAtX',
     timeout_ms: 60 *1000, // optional HTTP request timeout to apply to all requests.
 })
-
+set_old_urls()
 var stream = T.stream('user', { stringify_friend_ids: true })
-
 stream.on('tweet', tweetEvent);
+
+// One-liner for current directory, ignores .dotfiles
+chokidar.watch(filename, {ignored: /(^|[\/\\])\../}).on('change', (stats, path) => {
+    fs.readFile(filename, 'utf8', function(err, contents) {
+        updated_urls = contents.toString().split("\n");;
+        results = jsdiff.diffArrays(updated_urls, used_urls);
+        console.log(results.length);
+        console.log(results[1].value || []);
+        // console.log(results[0]);
+        set_old_urls()
+    })
+});
 
 function tweetEvent(tweet) {
     var reply_to = tweet.in_reply_to_screen_name;
