@@ -22,7 +22,9 @@ chokidar.watch(config.filename, {ignored: /(^|[\/\\])\../}).on('change', (stats,
             var tweet = {
                 status: '#freebies #freebies_daily ' + element,
             }
-            T.post('statuses/update', tweet, tweeted);
+            if(!empty(element)){
+                T.post('statuses/update', tweet, tweeted);
+            }
         }, this);
     })
 });
@@ -33,6 +35,31 @@ function tweeted(err, data, response) {
     } else {
         console.log("It worked!");
     }
+}
+
+function empty(data)
+{
+  if(typeof(data) == 'number' || typeof(data) == 'boolean')
+  { 
+    return false; 
+  }
+  if(typeof(data) == 'undefined' || data === null)
+  {
+    return true; 
+  }
+  if(typeof(data.length) != 'undefined')
+  {
+    return data.length == 0;
+  }
+  var count = 0;
+  for(var i in data)
+  {
+    if(data.hasOwnProperty(i))
+    {
+      count ++;
+    }
+  }
+  return count == 0;
 }
 function tweetEvent(tweet) {
     var reply_to = tweet.in_reply_to_screen_name;
