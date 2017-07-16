@@ -3,38 +3,37 @@ var MarkovChain = require('markovchain')
 var chokidar = require('chokidar');
 var fs = require('fs');
 var jsdiff = require('diff');
-var filename = '/home/simplex/python/deals_seeker/log.dat' ;
-
-var used_urls = []
-function set_old_urls(){
-    fs.readFile(filename, 'utf8', function(err, contents) {
-        used_urls = contents.toString().split("\n");
-        console.log('go')
-})};
+var config = require('./config')
 
 var T = new Twit({
-    consumer_key: 'FSvDijqqUDjgZn6d4zKhXuOws',
-    consumer_secret: 'XiGsRIbCeaqXmGMH8cbUHWxjggiFWL2PPwuTeDtoPxOEVJq66a',
-    access_token: '855864432756502530-qm7ZK91mY6YNqLkDacBx6xy4gLYqKnE',
-    access_token_secret: 'UEnHnd9woCNMkPseP9cPpXUgq9x6FBbxH0AbNvN2qoAtX',
+    consumer_key: config.consumer_key,
+    consumer_secret: config.consumer_secret,
+    access_token: config.access_token,
+    access_token_secret: config.access_token_secret,
     timeout_ms: 60 *1000, // optional HTTP request timeout to apply to all requests.
 })
-set_old_urls()
 var stream = T.stream('user', { stringify_friend_ids: true })
 stream.on('tweet', tweetEvent);
 
-// One-liner for current directory, ignores .dotfiles
-chokidar.watch(filename, {ignored: /(^|[\/\\])\../}).on('change', (stats, path) => {
-    fs.readFile(filename, 'utf8', function(err, contents) {
-        updated_urls = contents.toString().split("\n");;
-        results = jsdiff.diffArrays(updated_urls, used_urls);
-        console.log(results.length);
-        console.log(results[1].value || []);
-        // console.log(results[0]);
-        set_old_urls()
+chokidar.watch(config.filename, {ignored: /(^|[\/\\])\../}).on('change', (stats, path) => {
+    fs.readFile(config.filename, 'utf8', function(err, contents) {
+        updated_urls = contents.toString().split("\n");
+        updated_urls.forEach(function(element) {
+            var tweet = {
+                status: '#freebies #freebies_daily ' + element,
+            }
+            T.post('statuses/update', tweet, tweeted);
+        }, this);
     })
 });
-
+function tweeted(err, data, response) {
+    if (err) {
+        console.log(err)
+        console.log("Something went wrong!");
+    } else {
+        console.log("It worked!");
+    }
+}
 function tweetEvent(tweet) {
     var reply_to = tweet.in_reply_to_screen_name;
     var text       = tweet.text;
@@ -43,7 +42,7 @@ function tweetEvent(tweet) {
     var nameID     = tweet.id_str;
     // params just to see what is going on with the tweets
     var params     = {reply_to, text, from, nameID};
-    console.log(params);
+    // console.log(params);
 
     if (reply_to === 'SenileParrot') {
         var text = []
@@ -81,15 +80,6 @@ function tweetEvent(tweet) {
             }
 
             T.post('statuses/update', tweet, tweeted);
-
-            function tweeted(err, data, response) {
-                if (err) {
-                    console.log(err)
-                    console.log("Something went wrong!");
-                } else {
-                    console.log("It worked!");
-                }
-            }
         })
 
     }
